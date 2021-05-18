@@ -1,0 +1,47 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "metricResourceName": {
+            "defaultValue": "ApplicationGatewayRecommendedAlerts",
+            "type": "String"
+        },
+        "applicationGatewayResourceIds": {
+            "type": "array"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "microsoft.insights/metricAlerts",
+            "apiVersion": "2018-03-01",
+            "name": "[parameters('metricResourceName')]",
+            "location": "global",
+            "properties": {
+                "description": "Alert whenever number of failures are greater than 100.",
+                "severity": 3,
+                "enabled": true,
+                "scopes": "[parameters('applicationGatewayResourceIds')]",
+                "evaluationFrequency": "PT1M",
+                "windowSize": "PT5M",
+                "criteria": {
+                    "allOf": [
+                        {
+                            "threshold": 100,
+                            "name": "Metric1",
+                            "metricNamespace": "Microsoft.Network/applicationGateways",
+                            "metricName": "FailedRequests",
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Total",
+                            "criterionType": "StaticThresholdCriterion"
+                        }
+                    ],
+                    "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria"
+                },
+                "autoMitigate": true,
+                "targetResourceType": "Microsoft.Network/applicationGateways",
+                "actions": []
+            }
+        }
+    ]
+}
