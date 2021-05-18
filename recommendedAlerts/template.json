@@ -7,7 +7,10 @@
             "type": "String"
         },
         "applicationGatewayResourceIds": {
-            "type": "array"
+            "type": "array",
+            "metadata": {
+                "description": "List of Appliccation Gateway ids that the alert should be deployed to. e.g. [\"/subscriptions/f7e1a56e-347b-4103-87c7-e775a3e11ac5/resourceGroups/abjai-urlrewrite/providers/Microsoft.Network/applicationGateways/abjai-urlrewriteperfwaf\"]"
+            }
         }
     },
     "variables": {},
@@ -16,7 +19,7 @@
             "type": "microsoft.insights/metricAlerts",
             "apiVersion": "2018-03-01",
             "name": "[parameters('metricResourceName')]",
-            "location": "global",
+            "location": "[resourceGroup().location]",
             "properties": {
                 "description": "Alert whenever number of failures are greater than 100.",
                 "severity": 3,
