@@ -19,7 +19,7 @@
             "type": "microsoft.insights/metricAlerts",
             "apiVersion": "2018-03-01",
             "name": "[parameters('metricResourceName')]",
-            "location": "[resourceGroup().location]",
+            "location": "global",
             "properties": {
                 "description": "Alert whenever number of failures are greater than 100.",
                 "severity": 3,
