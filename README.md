@@ -6,4 +6,11 @@ Setup recommended alerts for Application Gateway with <a href="https://portal.az
 </a>.
 
 We recommend that alerts be setup for:
-* When there are too many failed requests.
+* Backend failures:
+	* Backend sending 5xx.
+	* Application Gateway sending 5xx, potentially implying unreachable/unresponsive backend.
+	* Non-zero unhealthy backend servers.
+* Backend response time/latency degradation
+* Application Gateway total time/latency degradation.
+* Azure Key Vault access issues for certificates referenced in Application Gateway.
+* Insufficient capacity at Application Gateway.

@@ -2,10 +2,6 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "metricResourceName": {
-            "defaultValue": "ApplicationGatewayRecommendedAlerts",
-            "type": "String"
-        },
         "applicationGatewayResourceIds": {
             "type": "array",
             "metadata": {
@@ -18,24 +14,59 @@
         {
             "type": "microsoft.insights/metricAlerts",
             "apiVersion": "2018-03-01",
-            "name": "[parameters('metricResourceName')]",
+            "name": "AlertOnBackendPoolIssuesInApplicationGateway",
             "location": "global",
             "properties": {
-                "description": "Alert whenever number of failures are greater than 100.",
-                "severity": 3,
+                "severity": 1,
                 "enabled": true,
                 "scopes": "[parameters('applicationGatewayResourceIds')]",
-                "evaluationFrequency": "PT1M",
+                "evaluationFrequency": "PT5M",
                 "windowSize": "PT5M",
                 "criteria": {
                     "allOf": [
                         {
-                            "threshold": 100,
-                            "name": "Metric1",
+                            "threshold": 0,
+                            "name": "ApplicationGatewayBackendResponseStatus",
                             "metricNamespace": "Microsoft.Network/applicationGateways",
-                            "metricName": "FailedRequests",
+                            "metricName": "BackendResponseStatus",
+                            "dimensions": [
+                                {
+                                    "name": "HttpStatusGroup",
+                                    "operator": "Include",
+                                    "values": [
+                                        "5xx"
+                                    ]
+                                }
+                            ],
                             "operator": "GreaterThan",
                             "timeAggregation": "Total",
+                            "criterionType": "StaticThresholdCriterion"
+                        },
+                        {
+                            "threshold": 0,
+                            "name": "ApplicationGatewayListenerResponseStatus",
+                            "metricNamespace": "Microsoft.Network/applicationGateways",
+                            "metricName": "ResponseStatus",
+                            "dimensions": [
+                                {
+                                    "name": "HttpStatusGroup",
+                                    "operator": "Include",
+                                    "values": [
+                                        "5xx"
+                                    ]
+                                }
+                            ],
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Total",
+                            "criterionType": "StaticThresholdCriterion"
+                        },
+                        {
+                            "threshold": 0,
+                            "name": "ApplicationGatewayUnhealthyHostCount",
+                            "metricNamespace": "Microsoft.Network/applicationGateways",
+                            "metricName": "UnhealthyHostCount",
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Average",
                             "criterionType": "StaticThresholdCriterion"
                         }
                     ],
@@ -43,7 +74,178 @@
                 },
                 "autoMitigate": true,
                 "targetResourceType": "Microsoft.Network/applicationGateways",
-                "actions": []
+                "actions": [
+                    {
+                        "actionGroupId": "[resourceId('microsoft.insights/actionGroups', 'ActionsOnFailuresAtApplicationGateway')]",
+                        "webhookProperties": {}
+                    }
+                ]
+            }
+        },
+        {
+            "type": "microsoft.insights/metricAlerts",
+            "apiVersion": "2018-03-01",
+            "name": "AlertOnApplicationGatewayTotalTimeDegradation",
+            "location": "global",
+            "properties": {
+                "severity": 2,
+                "enabled": true,
+                "scopes": "[parameters('applicationGatewayResourceIds')]",
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT5M",
+                "criteria": {
+                    "allOf": [
+                        {
+                            "alertSensitivity": "Medium",
+                            "failingPeriods": {
+                                "numberOfEvaluationPeriods": 4,
+                                "minFailingPeriodsToAlert": 4
+                            },
+                            "name": "ApplicationGatewayTotalTime",
+                            "metricNamespace": "Microsoft.Network/applicationGateways",
+                            "metricName": "ApplicationGatewayTotalTime",
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Average",
+                            "criterionType": "DynamicThresholdCriterion"
+                        }
+                    ],
+                    "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria"
+                },
+                "autoMitigate": true,
+                "targetResourceType": "Microsoft.Network/applicationGateways",
+                "actions": [
+                    {
+                        "actionGroupId": "[resourceId('microsoft.insights/actionGroups', 'ActionsOnFailuresAtApplicationGateway')]",
+                        "webhookProperties": {}
+                    }
+                ]
+            }
+        },
+        {
+            "type": "microsoft.insights/metricAlerts",
+            "apiVersion": "2018-03-01",
+            "name": "AlertOnApplicationGatewayBackendLatencyDegradation",
+            "location": "global",
+            "properties": {
+                "severity": 2,
+                "enabled": true,
+                "scopes": "[parameters('applicationGatewayResourceIds')]",
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT5M",
+                "criteria": {
+                    "allOf": [
+                        {
+                            "alertSensitivity": "Medium",
+                            "failingPeriods": {
+                                "numberOfEvaluationPeriods": 4,
+                                "minFailingPeriodsToAlert": 4
+                            },
+                            "name": "ApplicationGatewayBackendLatency",
+                            "metricNamespace": "Microsoft.Network/applicationGateways",
+                            "metricName": "BackendLastByteResponseTime",
+                            "operator": "GreaterThan",
+                            "timeAggregation": "Average",
+                            "criterionType": "DynamicThresholdCriterion"
+                        }
+                    ],
+                    "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria"
+                },
+                "autoMitigate": true,
+                "targetResourceType": "Microsoft.Network/applicationGateways",
+                "actions": [
+                    {
+                        "actionGroupId": "[resourceId('microsoft.insights/actionGroups', 'ActionsOnFailuresAtApplicationGateway')]",
+                        "webhookProperties": {}
+                    }
+                ]
+            }
+        },
+        {
+            "type": "microsoft.insights/activityLogAlerts",
+            "apiVersion": "2020-10-01",
+            "name": "AlertOnAzureKeyVaultAccessIssuesWithApplicationGateway",
+            "location": "Global",
+            "properties": {
+                "scopes": "[parameters('applicationGatewayResourceIds')]",
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "Recommendation"
+                        },
+                        {
+                            "field": "operationName",
+                            "equals": "Microsoft.Advisor/recommendations/available/action"
+                        },
+                        {
+                            "field": "properties.recommendationType",
+                            "equals": "3467464b-955a-4caf-95e5-547344ba0281"
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[resourceId('microsoft.insights/actionGroups', 'ActionsOnFailuresAtApplicationGateway')]",
+                            "webhookProperties": {}
+                        }
+                    ]
+                },
+                "enabled": true
+            }
+        },
+        {
+            "type": "microsoft.insights/activityLogAlerts",
+            "apiVersion": "2020-10-01",
+            "name": "AlertonInsufficientCapacityAtApplicationGateway",
+            "location": "Global",
+            "properties": {
+                "scopes": "[parameters('applicationGatewayResourceIds')]",
+                "condition": {
+                    "allOf": [
+                        {
+                            "field": "category",
+                            "equals": "Recommendation"
+                        },
+                        {
+                            "field": "operationName",
+                            "equals": "Microsoft.Advisor/recommendations/available/action"
+                        },
+                        {
+                            "field": "properties.recommendationType",
+                            "equals": "2ee9f31e-df58-4893-b3e7-66c0cd74183a"
+                        }
+                    ]
+                },
+                "actions": {
+                    "actionGroups": [
+                        {
+                            "actionGroupId": "[resourceId('microsoft.insights/actionGroups', 'ActionsOnFailuresAtApplicationGateway')]",
+                            "webhookProperties": {}
+                        }
+                    ]
+                },
+                "enabled": true
+            }
+        },
+        {
+            "type": "microsoft.insights/actionGroups",
+            "apiVersion": "2019-06-01",
+            "name": "ActionsOnFailuresAtApplicationGateway",
+            "location": "Global",
+            "properties": {
+                "groupShortName": "pavermatestS",
+                "enabled": true,
+                "emailReceivers": [],
+                "smsReceivers": [],
+                "webhookReceivers": [],
+                "itsmReceivers": [],
+                "azureAppPushReceivers": [],
+                "automationRunbookReceivers": [],
+                "voiceReceivers": [],
+                "logicAppReceivers": [],
+                "azureFunctionReceivers": [],
+                "armRoleReceivers": []
             }
         }
     ]
